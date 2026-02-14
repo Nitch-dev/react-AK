@@ -47,17 +47,16 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import GST from './pages/GST';
+import GST from './pages/Gst';
 import HistoricalImport from './pages/HistoricalImport';
 import InvoiceView from './pages/InvoiceView';
 import Invoices from './pages/Invoices';
 import PaymentImport from './pages/PaymentImport';
 import PaymentTracker from './pages/PaymentTracker';
 import Sales from './pages/Sales';
-import SalesImport from './pages/SalesImport';
+import SalesImport from './pages/Salesimport'; // Changed 'i' to lowercase to match image
 import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
-
 
 export const PAGES = {
     "GST": GST,

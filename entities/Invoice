@@ -1,0 +1,79 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "Invoice number (e.g., ALK/25-26/7)"
+    },
+    "ref_number": {
+      "type": "string",
+      "description": "Reference number"
+    },
+    "invoice_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of invoice"
+    },
+    "financial_year": {
+      "type": "string",
+      "description": "Financial year (e.g., 25-26)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID of the client"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Name of the client"
+    },
+    "client_address": {
+      "type": "string",
+      "description": "Client address"
+    },
+    "client_gstin": {
+      "type": "string",
+      "description": "Client GSTIN"
+    },
+    "client_state_name": {
+      "type": "string",
+      "description": "Client state name"
+    },
+    "client_state_code": {
+      "type": "string",
+      "description": "Client state code"
+    },
+    "total_quantity": {
+      "type": "number",
+      "description": "Total quantity of items"
+    },
+    "grand_total": {
+      "type": "number",
+      "description": "Grand total amount"
+    },
+    "amount_in_words": {
+      "type": "string",
+      "description": "Amount in words"
+    },
+    "declaration_text": {
+      "type": "string",
+      "description": "Declaration text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "paid",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "Invoice status"
+    }
+  },
+  "required": [
+    "invoice_number",
+    "invoice_date",
+    "client_id"
+  ]
+}

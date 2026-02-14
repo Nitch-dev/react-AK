@@ -1,0 +1,43 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Name of the company"
+    },
+    "company_code": {
+      "type": "string",
+      "description": "Company code for invoice numbering (e.g., ALK)"
+    },
+    "address": {
+      "type": "string",
+      "description": "Company address"
+    },
+    "gstin": {
+      "type": "string",
+      "description": "GST Identification Number"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Company email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Company phone number"
+    },
+    "state_name": {
+      "type": "string",
+      "description": "State name"
+    },
+    "state_code": {
+      "type": "string",
+      "description": "State code"
+    }
+  },
+  "required": [
+    "company_name",
+    "company_code"
+  ]
+}

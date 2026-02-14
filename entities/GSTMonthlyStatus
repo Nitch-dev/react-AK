@@ -1,0 +1,28 @@
+{
+  "name": "GSTMonthlyStatus",
+  "type": "object",
+  "properties": {
+    "year": {
+      "type": "number",
+      "description": "Year (e.g., 2025)"
+    },
+    "month": {
+      "type": "number",
+      "description": "Month (1-12)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "working",
+        "filed"
+      ],
+      "default": "draft",
+      "description": "Global status for the month"
+    }
+  },
+  "required": [
+    "year",
+    "month"
+  ]
+}

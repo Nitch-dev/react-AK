@@ -1,0 +1,60 @@
+{
+  "name": "GST",
+  "type": "object",
+  "properties": {
+    "sr_no": {
+      "type": "number",
+      "description": "Auto-incrementing serial number"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "CDC Barcode from sales"
+    },
+    "description": {
+      "type": "string",
+      "description": "Product description from sales"
+    },
+    "colour": {
+      "type": "string",
+      "description": "Product colour from sales"
+    },
+    "size": {
+      "type": "string",
+      "description": "Product size from sales"
+    },
+    "sale_amount": {
+      "type": "number",
+      "description": "Sale amount from sales"
+    },
+    "margin_taxable": {
+      "type": "number",
+      "default": 500,
+      "description": "Taxable margin (editable)"
+    },
+    "purchase_amount": {
+      "type": "number",
+      "description": "Calculated: Sale Amount - Margin Taxable"
+    },
+    "gst_amount": {
+      "type": "number",
+      "description": "Calculated: Margin Taxable * 0.18"
+    },
+    "month": {
+      "type": "number",
+      "description": "Month from sale date (1-12)"
+    },
+    "year": {
+      "type": "number",
+      "description": "Year from sale date"
+    },
+    "sale_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Original sale date"
+    }
+  },
+  "required": [
+    "barcode",
+    "sale_amount"
+  ]
+}

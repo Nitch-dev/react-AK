@@ -1,0 +1,48 @@
+{
+  "name": "InvoiceItem",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "ID of the invoice"
+    },
+    "row_index": {
+      "type": "number",
+      "description": "Original Excel row index for ordering"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "Product barcode from sales"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of goods"
+    },
+    "hsn_code": {
+      "type": "string",
+      "description": "HSN Code"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantity"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measurement (e.g., Pair, Pcs, Kg)"
+    },
+    "rate": {
+      "type": "number",
+      "description": "Rate per unit"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Total amount (Quantity \u00d7 Rate)"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "description",
+    "quantity",
+    "rate"
+  ]
+}

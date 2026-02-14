@@ -1,0 +1,38 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "party_name": {
+      "type": "string",
+      "description": "Name of the party/client"
+    },
+    "address": {
+      "type": "string",
+      "description": "Client address"
+    },
+    "gstin": {
+      "type": "string",
+      "description": "GST Identification Number"
+    },
+    "state_name": {
+      "type": "string",
+      "description": "State name"
+    },
+    "state_code": {
+      "type": "string",
+      "description": "State code"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Client email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Client phone number"
+    }
+  },
+  "required": [
+    "party_name"
+  ]
+}

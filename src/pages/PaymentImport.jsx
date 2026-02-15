@@ -26,45 +26,48 @@ export default function PaymentImportPage() {
   };
 
   const processFile = async () => {
-    if (!file) return;
-    
-    setProcessing(true);
-    setValidationErrors([]);
-    setPreviewData(null);
-    setProgress(0);
-    
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setProgress(20);
+      if (!file) return;
       
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            "BARCODE": { type: "string" },
-            "AMOUNT PAID": { type: "number" },
-            "PAYMENT DATE": { type: "string" }
-          }
+      setProcessing(true);
+      setValidationErrors([]);
+      setPreviewData(null);
+      setProgress(0);
+      
+      try {
+        // 1. Wrap the file in FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        setProgress(20);
+
+        // 2. Send directly to your unified Vercel Flask endpoint
+        // Ensure VITE_API_URL is your Vercel backend URL
+        const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+          method: 'POST',
+          body: formData,
+        });
+
+        setProgress(60);
+
+        const result = await response.json();
+
+        if (result.status === "success" && result.output) {
+          // 3. The data is now in result.output
+          const rows = Array.isArray(result.output) ? result.output : [result.output];
+          
+          // Use the rows directly - they will contain BARCODE, AMOUNT PAID, etc.
+          setPreviewData(rows);
+          setProgress(100);
+        } else {
+          throw new Error(result.message || 'Failed to parse Excel file');
         }
-      });
-
-      setProgress(40);
-
-      if (result.status === "success" && result.output) {
-        const rows = Array.isArray(result.output) ? result.output : [result.output];
-        setPreviewData(rows);
-        setProgress(50);
-      } else {
-        setValidationErrors([{ row: 0, message: 'Failed to parse Excel file' }]);
+      } catch (error) {
+        console.error('Error processing file:', error);
+        setValidationErrors([{ row: 0, message: 'Error processing file: ' + error.message }]);
+      } finally {
+        setProcessing(false);
       }
-    } catch (error) {
-      console.error('Error processing file:', error);
-      setValidationErrors([{ row: 0, message: 'Error processing file: ' + error.message }]);
-    } finally {
-      setProcessing(false);
-    }
-  };
+    };
 
   const confirmImport = async () => {
     if (!previewData) return;

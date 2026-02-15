@@ -25,7 +25,7 @@ export default function Layout({ children, currentPageName }) {
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Invoice Manager</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">TradeFlow Pro</h1>
                 <p className="text-xs text-slate-500">Premium Business Suite</p>
               </div>
             </div>

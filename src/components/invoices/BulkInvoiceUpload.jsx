@@ -30,51 +30,41 @@ export default function BulkInvoiceUpload({ onSuccess, onCancel }) {
   };
 
   const processFile = async () => {
-    if (!file) return;
-    
-    setProcessing(true);
-    setValidationErrors([]);
-    
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (!file) return;
       
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            "Invoice Number": { type: "string" },
-            "Customer Name": { type: "string" },
-            "Invoice Date": { type: "string" },
-            "Description": { type: "string" },
-            "colour": { type: "string" },
-            "color": { type: "string" },
-            "Size": { type: "string" },
-            "Price": { type: "number" },
-            "Rate": { type: "number" },
-            "Amount": { type: "number" },
-            "Quantity": { type: "number" },
-            "HSN Code": { type: "string" },
-            "Unit": { type: "string" },
-            "Model": { type: "string" }
-          }
-        }
-      });
+      setProcessing(true);
+      setValidationErrors([]);
+      
+      try {
+        // 1. Create the FormData for the file
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // 2. Call your Flask endpoint on Vercel
+        const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (result.status === "success" && result.output) {
-        const rows = Array.isArray(result.output) ? result.output : [result.output];
-        setRawData(rows);
-        detectColumns(rows);
-      } else {
-        setValidationErrors([{ row: 0, message: 'Failed to parse Excel file' }]);
+        const result = await response.json();
+
+        if (result.status === "success" && result.output) {
+          // 3. Convert to array if needed
+          const rows = Array.isArray(result.output) ? result.output : [result.output];
+          
+          // 4. Update the state for RawData and trigger column detection
+          setRawData(rows);
+          detectColumns(rows);
+        } else {
+          throw new Error(result.message || 'Failed to parse Excel file');
+        }
+      } catch (error) {
+        console.error('Error processing file:', error);
+        setValidationErrors([{ row: 0, message: 'Error processing file: ' + error.message }]);
+      } finally {
+        setProcessing(false);
       }
-    } catch (error) {
-      console.error('Error processing file:', error);
-      setValidationErrors([{ row: 0, message: 'Error processing file' }]);
-    } finally {
-      setProcessing(false);
-    }
-  };
+    };
 
   const detectColumns = (rows) => {
     if (!rows || rows.length === 0) return;

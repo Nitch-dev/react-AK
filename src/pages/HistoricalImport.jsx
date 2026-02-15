@@ -27,52 +27,51 @@ export default function HistoricalImportPage() {
   };
 
   const processFile = async () => {
-    if (!file) return;
-    
-    setProcessing(true);
-    setValidationErrors([]);
-    setPreviewData(null);
-    setProgress(0);
-    
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setProgress(20);
+      if (!file) return;
       
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            "Invoice Number": { type: "string" },
-            "Invoice Date": { type: "string" },
-            "Customer Name": { type: "string" },
-            "Barcode": { type: "string" },
-            "Description": { type: "string" },
-            "Colour": { type: "string" },
-            "Size": { type: "string" },
-            "Sales Amount": { type: "number" },
-            "GST Purchase Price": { type: "number" },
-            "GST Margin": { type: "number" }
-          }
+      setProcessing(true);
+      setValidationErrors([]);
+      setPreviewData(null);
+      setProgress(0);
+      
+      try {
+        // 1. Prepare the file
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        setProgress(20);
+
+        // 2. Hit your unified Flask endpoint on Vercel
+        const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+          method: 'POST',
+          body: formData,
+        });
+
+        setProgress(60);
+
+        const result = await response.json();
+
+        if (result.status === "success" && result.output) {
+          // 3. Convert output to array if it isn't one
+          const rows = Array.isArray(result.output) ? result.output : [result.output];
+          
+          // 4. Pass the extracted rows to your existing validation logic
+          await validateData(rows);
+          
+          setProgress(100);
+        } else {
+          throw new Error(result.message || 'Failed to parse Excel file');
         }
-      });
-
-      setProgress(40);
-
-      if (result.status === "success" && result.output) {
-        const rows = Array.isArray(result.output) ? result.output : [result.output];
-        await validateData(rows);
-      } else {
-        setValidationErrors([{ row: 0, message: 'Failed to parse Excel file' }]);
+      } catch (error) {
+        console.error('Error processing file:', error);
+        setValidationErrors([{ 
+          row: 0, 
+          message: 'Error processing file: ' + error.message 
+        }]);
+      } finally {
+        setProcessing(false);
       }
-    } catch (error) {
-      console.error('Error processing file:', error);
-      setValidationErrors([{ row: 0, message: 'Error processing file: ' + error.message }]);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
+    };
   const parseDate = (rawDate) => {
     if (!rawDate) return null;
     

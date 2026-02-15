@@ -337,9 +337,9 @@ export default function GSTPage() {
                         </button>
                       </th>
                       <th className="text-left p-3 font-semibold">
-                        <button onClick={() => handleSort("barcode")} className="flex items-center gap-1">
+                        <button onClick={() => handleSort("sr_no")} className="flex items-center gap-1">
                           Barcode
-                          {sortConfig.field === "barcode" ? (
+                          {sortConfig.field === "sr_no" ? (
                             sortConfig.direction === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                           ) : <ArrowUpDown className="w-3 h-3 text-gray-400" />}
                         </button>

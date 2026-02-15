@@ -43,45 +43,46 @@ export default function SalesImportPage() {
 
   const processFile = async () => {
     if (!file) return;
-    
+
     setProcessing(true);
     setValidationErrors([]);
     setPreviewData(null);
     setProgress(0);
-    
+
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // 1. Prepare the file for upload
+      const formData = new FormData();
+      formData.append('file', file);
+
       setProgress(20);
-      
-      const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            "BARCODE": { type: "string" },
-            "Description": { type: "string" },
-            "Colour": { type: "string" },
-            "Size": { type: "string" },
-            "Price": { type: "number" },
-            "Date": { type: "string" }
-          }
-        }
+
+      // 2. Call your new unified Flask endpoint
+      // Replace YOUR_FLASK_URL with your Vercel backend URL or use your SDK's fetch
+      const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+        method: 'POST',
+        body: formData,
       });
 
-      setProgress(40);
+      setProgress(60);
+
+      const result = await response.json();
 
       if (result.status === "success" && result.output) {
+        // 3. Handle the returned data
         const rows = Array.isArray(result.output) ? result.output : [result.output];
+        
         setPreviewData(rows);
-        setProgress(50);
+        setProgress(100); // Done!
         setProcessing(false);
       } else {
-        setValidationErrors([{ row: 0, message: 'Failed to parse Excel file' }]);
-        setProcessing(false);
+        throw new Error(result.message || 'Failed to parse Excel file');
       }
     } catch (error) {
       console.error('Error processing file:', error);
-      setValidationErrors([{ row: 0, message: 'Error processing file: ' + error.message }]);
+      setValidationErrors([{ 
+        row: 0, 
+        message: 'Error processing file: ' + error.message 
+      }]);
       setProcessing(false);
     }
   };

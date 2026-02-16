@@ -148,6 +148,7 @@ export default function SettingsPage() {
   };
 
   // Delete all data function
+// Delete all data function using the new Flask endpoint
   const handleDeleteAllData = async () => {
     if (deletePassword !== "DELETE123") {
       alert("Incorrect password!");
@@ -156,44 +157,30 @@ export default function SettingsPage() {
 
     setDeleteLoading(true);
     try {
-      // Delete all data from all entities
-      const [invoices, sales, gst, payments, clients] = await Promise.all([
-        base44.entities.Invoice.list(),
-        base44.entities.Sales.list(),
-        base44.entities.GST.list(),
-        base44.entities.PaymentTracker.list(),
-        base44.entities.Client.list()
-      ]);
+      // Direct call to your new Flask endpoint
+      const response = await fetch('https://flask-backend-ak.vercel.app/api/del', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: deletePassword })
+      });
 
-      // Delete invoice items first (due to foreign key)
-      if (invoices.length > 0) {
-        const allInvoiceItems = await base44.entities.InvoiceItem.list();
-        await Promise.all(allInvoiceItems.map(item => base44.entities.InvoiceItem.delete(item.id)));
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("All data has been cleared successfully.");
+        setDeleteDialogOpen(false);
+        setDeletePassword("");
+        // Reload local state
+        loadClients();
+        loadCompany();
+      } else {
+        throw new Error(result.error || 'Failed to delete data');
       }
-
-      // Delete all records
-      await Promise.all([
-        ...invoices.map(inv => base44.entities.Invoice.delete(inv.id)),
-        ...sales.map(sale => base44.entities.Sales.delete(sale.id)),
-        ...gst.map(record => base44.entities.GST.delete(record.id)),
-        ...payments.map(payment => base44.entities.PaymentTracker.delete(payment.id)),
-        ...clients.map(client => base44.entities.Client.delete(client.id))
-      ]);
-
-      // Try to delete GST monthly status records
-      try {
-        const gstMonthly = await base44.entities.GSTMonthlyStatus.list();
-        await Promise.all(gstMonthly.map(record => base44.entities.GSTMonthlyStatus.delete(record.id)));
-      } catch (e) {
-        console.log('No GST monthly records to delete');
-      }
-
-      setDeleteDialogOpen(false);
-      setDeletePassword("");
-      loadClients();
     } catch (error) {
       console.error('Error deleting data:', error);
-      alert('Failed to delete all data: ' + error.message);
+      alert('Error: ' + error.message);
     } finally {
       setDeleteLoading(false);
     }

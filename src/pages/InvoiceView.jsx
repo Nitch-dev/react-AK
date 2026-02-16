@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import * as XLSX from 'xlsx';
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import autoTable from 'jspdf-autotable'; // Add this import at the top
+import { NotoSansRegular } from '../fonts/NotoSans';
 
 export default function InvoiceView() {
   const [invoice, setInvoice] = useState(null);
@@ -45,47 +47,147 @@ export default function InvoiceView() {
     setLoading(false);
   };
 
-  const downloadPDF = async () => {
-    setDownloading(true);
-    try {
-      const element = document.getElementById('invoice-content');
-      
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-      
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-      
-      pdf.save(`Invoice_${invoice.invoice_number.replace(/\//g, '-')}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setDownloading(false);
+
+
+const downloadPDF = async () => {
+  setDownloading(true);
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    doc.addFileToVFS('NotoSans.ttf', NotoSansRegular);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 10;
+
+    // --- 1. HEADER ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text(company?.company_name || "ALK RESELL SHOES", pageWidth / 2, 15, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(company?.address || "", pageWidth / 2, 20, { align: 'center' });
+    
+    const headerInfo = `GSTIN: ${company?.gstin || ''}   Ph: ${company?.phone || ''}   Email: ${company?.email || ''}`;
+    doc.text(headerInfo, pageWidth / 2, 25, { align: 'center' });
+    
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 30, pageWidth - margin, 30);
+
+    // --- 2. METADATA ---
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text("TAX INVOICE", pageWidth / 2, 40, { align: 'center' });
+
+    // Bill To
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, 45, 80, 7, 'F');
+    doc.setFontSize(10);
+    doc.text("Bill To:", margin + 2, 50);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text(invoice.client_name || "", margin, 58);
+    doc.setFontSize(8);
+    doc.text(invoice.client_address || "", margin, 62);
+    doc.text(`State: ${invoice.client_state_name || ''} (${invoice.client_state_code || ''})`, margin, 66);
+
+    // Right Side Details
+    const rightX = pageWidth - margin;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("Invoice No:", 135, 50);
+    doc.text("Date:", 135, 55);
+    doc.text("Ref No:", 135, 60);
+    
+    // doc.setFont("helvetica", "normal");
+    doc.addFont('NotoSans.ttf', 'NotoSans', 'normal');
+    doc.setFont('NotoSans', 'normal');
+    doc.text(invoice.invoice_number || "", rightX, 50, { align: 'right' });
+    const dateStr = invoice.invoice_date ? format(new Date(invoice.invoice_date), 'dd/MM/yyyy') : '-';
+    doc.text(dateStr, rightX, 55, { align: 'right' });
+    doc.text(invoice.ref_number || "", rightX, 60, { align: 'right' });
+
+    // --- 3. THE TABLE ---
+    const tableRows = items.map((item, index) => [
+      index + 1,
+      item.barcode || '',
+      item.description || '',
+      item.hsn_code || '',
+      item.quantity || '',
+      item.unit || '',
+      ` ₹ ${item.amount.toFixed(2)}` // Using Rs. ensures it stays inside the box safely
+    ]);
+
+    autoTable(doc, {
+      startY: 72,
+      head: [['S.No', 'Barcode', 'Description of Goods', 'HSN Code', 'Qty', 'Unit', 'Amount']],
+      body: tableRows,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2, font: 'NotoSans' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'normal', lineWidth: 0.1, font: 'NotoSans' },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 18 },
+        2: { cellWidth: 'auto' },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 12, halign: 'center' },
+        5: { cellWidth: 12, halign: 'center' },
+        6: { cellWidth: 30, halign: 'right' } // Increased width to fix "outside the box" issue
+      },
+      margin: { left: margin, right: margin }
+    });
+
+     // --- 4. FOOTER & DECLARATION ---
+    let finalY = doc.lastAutoTable.finalY + 10;
+
+    // Grand Total Row
+    doc.setFont('NotoSans', 'normal');
+    doc.text(`Total: ₹ ${invoice.grand_total.toFixed(2)}`, rightX, finalY, { align: 'right' });
+    finalY += 10;
+    if (finalY > 230) { doc.addPage(); finalY = 20; }
+
+    // Amount in Words Box
+    doc.setDrawColor(200);
+    doc.setFillColor(250, 251, 252);
+    doc.rect(margin, finalY, pageWidth - (margin * 2), 10, 'FD');
+    doc.setFontSize(9);
+    doc.setTextColor(0);
+    doc.text(`Amount in Words: `, margin + 2, finalY + 6.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${invoice.amount_in_words}`, margin + 32, finalY + 6.5);
+
+    finalY += 18;
+
+    // Declaration Text (From DB)
+    if (invoice.declaration_text) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(80);
+      // This splits the database text into lines that fit the page width
+      const declarationLines = doc.splitTextToSize(invoice.declaration_text, pageWidth - (margin * 2));
+      doc.text(declarationLines, margin, finalY);
+      finalY += (declarationLines.length * 4) + 10;
     }
-  };
+
+    // Signatory Section
+    if (finalY > 260) { doc.addPage(); finalY = 20; }
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text(`For ${company?.company_name || 'ALK RESELL SHOES'}`, rightX, finalY, { align: 'right' });
+    
+    doc.setLineWidth(0.2);
+    doc.line(rightX - 50, finalY + 15, rightX, finalY + 15);
+    doc.text("Authorized Signatory", rightX - 25, finalY + 20, { align: 'center' });
+
+    doc.save(`Invoice_${invoice.invoice_number.replace(/\//g, '-')}.pdf`);
+  } catch (error) {
+    console.error('PDF Error:', error);
+    alert('Generation failed.');
+  } finally {
+    setDownloading(false);
+  }
+};
 
   const downloadExcel = () => {
     const data = items.map((item, index) => ({

@@ -85,6 +85,7 @@ export default function PaymentImportPage() {
   };
 
   const processPayments = async (rows) => {
+    console.log("Processing payments for rows:", rows);
     const errors = [];
     let matched = 0;
     let notFound = 0;
@@ -95,7 +96,7 @@ export default function PaymentImportPage() {
       const barcode = row['BARCODE'];
       const amountPaid = row['AMOUNT PAID'] || 0;
       const rawPaymentDate = row['PAYMENT DATE'];
-
+      
       if (!barcode) {
         errors.push({ message: 'Missing BARCODE in row' });
         continue;
@@ -105,9 +106,18 @@ export default function PaymentImportPage() {
       let paymentDate;
       if (!rawPaymentDate) {
         paymentDate = new Date().toISOString().split('T')[0];
-      } else if (typeof rawPaymentDate === 'number') {
-        const excelEpoch = new Date(1899, 11, 30);
-        paymentDate = new Date(excelEpoch.getTime() + rawPaymentDate * 86400000).toISOString().split('T')[0];
+      } else if (typeof rawPaymentDate === 'string' && rawPaymentDate.includes('/')) {
+        // Manually split DD/MM/YY or DD/MM/YYYY
+        const parts = rawPaymentDate.split('/');
+        const day = parts[0].padStart(2, '0');
+        const month = parts[1].padStart(2, '0');
+        let year = parts[2];
+        
+        // Handle '24' vs '2024'
+        if (year.length === 2) year = `20${year}`;
+        
+        // Construct YYYY-MM-DD (The format Supabase/Database needs)
+        paymentDate = `${year}-${month}-${day}`;
       } else {
         const testDate = new Date(rawPaymentDate);
         paymentDate = !isNaN(testDate.getTime()) 
@@ -178,6 +188,7 @@ export default function PaymentImportPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   Review the payment data below and click "Confirm Import" to proceed with updating {previewData.length} payment records.
+
                 </AlertDescription>
               </Alert>
 
@@ -195,7 +206,10 @@ export default function PaymentImportPage() {
                       <tr key={idx} className="border-b hover:bg-slate-50">
                         <td className="p-3 text-sm font-mono">{row['BARCODE']}</td>
                         <td className="p-3 text-sm text-right font-semibold">₹{row['AMOUNT PAID'] || 0}</td>
-                        <td className="p-3 text-sm">{row['PAYMENT DATE'] ? new Date(row['PAYMENT DATE']).toLocaleDateString() : 'Today'}</td>
+                        {/* <td className="p-3 text-sm">{row['PAYMENT DATE'] ? new Date(row['PAYMENT DATE']).toLocaleDateString() : 'Today'}</td> */}
+                      <td className="p-3 text-sm">
+                      {row['PAYMENT DATE'] ? row['PAYMENT DATE'] : 'Today'}
+                    </td>
                       </tr>
                     ))}
                   </tbody>

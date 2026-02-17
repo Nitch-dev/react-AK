@@ -148,11 +148,27 @@ export default function InvoiceForm({ onSuccess }) {
     return `${(year - 1).toString().slice(2)}-${year.toString().slice(2)}`;
   };
 
-  const getNextInvoiceNumber = async (companyCode, financialYear) => {
-    const invoices = await base44.entities.Invoice.filter({ financial_year: financialYear }, '-created_date');
-    const invoiceNum = invoices.length + 1;
-    return `${companyCode}/${financialYear}/${invoiceNum}`;
-  };
+const getNextInvoiceNumber = async (companyCode, financialYear) => {
+  console.log("Filtering for financial_year:", financialYear);
+  // Fetch all invoices for this financial year
+  const invoices = await base44.entities.Invoice.filter({ financial_year: financialYear });
+  console.log(`Found ${invoices.length} invoices for financial year ${financialYear}`);
+  if (invoices.length === 0) {
+    // No invoices yet for this financial year — start from 1
+    return `${companyCode}/${financialYear}/1`;
+  }
+
+  // Extract the sequence number from each invoice number and find the highest
+  // e.g. "ALK/2024-25/12" → 12
+  const maxSequence = Math.max(
+    ...invoices.map(inv => {
+      const match = inv.invoice_number?.match(/\/(\d+)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+  );
+
+  return `${companyCode}/${financialYear}/${maxSequence + 1}`;
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();

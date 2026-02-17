@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import html2canvas from 'html2canvas';
+import autoTable from 'jspdf-autotable';
 import jsPDF from 'jspdf';
 import {
   AlertDialog,
@@ -24,6 +25,7 @@ import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import EditInvoiceNumber from "../components/invoices/EditInvoiceNumber";
+import { NotoSansRegular } from '../fonts/NotoSans';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -87,125 +89,164 @@ export default function InvoicesPage() {
   };
 
   const downloadInvoicePDF = async (invoiceId) => {
-    try {
-      const invoice = await base44.entities.Invoice.filter({ id: invoiceId });
-      if (!invoice || invoice.length === 0) return;
-      
-      const inv = invoice[0];
-      const itemsData = await base44.entities.InvoiceItem.filter({ invoice_id: invoiceId });
-      const items = itemsData.sort((a, b) => (a.row_index || 0) - (b.row_index || 0));
-      const companies = await base44.entities.Company.list();
-      const company = companies.length > 0 ? companies[0] : {};
+  try {
+    // 1. Fetch all required data
+    const invoiceArr = await base44.entities.Invoice.filter({ id: invoiceId });
+    if (!invoiceArr || invoiceArr.length === 0) return;
+    const invoice = invoiceArr[0];
 
-      const tempDiv = document.createElement('div');
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '210mm';
-      tempDiv.style.padding = '20px';
-      tempDiv.style.backgroundColor = 'white';
-      
-      tempDiv.innerHTML = `
-        <div style="font-family: Arial, sans-serif;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="font-size: 24px; margin: 0;">${company.company_name || ''}</h1>
-            <p style="font-size: 12px; margin: 5px 0;">${company.address || ''}</p>
-            <p style="font-size: 12px; margin: 5px 0;">GSTIN: ${company.gstin || ''} | Email: ${company.email || ''} | Phone: ${company.phone || ''}</p>
-          </div>
-          
-          <h2 style="text-align: center; font-size: 20px; margin: 20px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0;">TAX INVOICE</h2>
-          
-          <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-            <div style="width: 48%;">
-              <p style="font-size: 11px; margin: 3px 0;"><strong>Invoice No:</strong> ${inv.invoice_number}</p>
-              <p style="font-size: 11px; margin: 3px 0;"><strong>Ref No:</strong> ${inv.ref_number || ''}</p>
-              <p style="font-size: 11px; margin: 3px 0;"><strong>Date:</strong> ${inv.invoice_date ? format(new Date(inv.invoice_date), 'dd/MM/yyyy') : '-'}</p>
-            </div>
-            <div style="width: 48%; border: 1px solid #000; padding: 10px;">
-              <p style="font-size: 11px; margin: 0 0 5px 0;"><strong>Bill To:</strong></p>
-              <p style="font-size: 11px; margin: 3px 0;"><strong>${inv.client_name}</strong></p>
-              <p style="font-size: 11px; margin: 3px 0;">${inv.client_address || ''}</p>
-              <p style="font-size: 11px; margin: 3px 0;">GSTIN: ${inv.client_gstin || ''}</p>
-              <p style="font-size: 11px; margin: 3px 0;">State: ${inv.client_state_name || ''} (${inv.client_state_code || ''})</p>
-            </div>
-          </div>
-          
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <thead>
-              <tr style="background-color: #f0f0f0; border: 2px solid #000;">
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 11px;">S.No</th>
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 11px;">Barcode</th>
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 11px;">Description</th>
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 11px;">HSN</th>
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 11px;">Qty</th>
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 11px;">Unit</th>
-                <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 11px;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${items.map((item, idx) => `
-                <tr>
-                  <td style="border: 1px solid #ccc; padding: 6px; font-size: 10px;">${idx + 1}</td>
-                  <td style="border: 1px solid #ccc; padding: 6px; font-size: 9px; font-family: monospace;">${item.barcode || '-'}</td>
-                  <td style="border: 1px solid #ccc; padding: 6px; font-size: 10px;">${item.description}</td>
-                  <td style="border: 1px solid #ccc; padding: 6px; font-size: 10px;">${item.hsn_code || ''}</td>
-                  <td style="border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 10px;">${item.quantity}</td>
-                  <td style="border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 10px;">${item.unit || ''}</td>
-                  <td style="border: 1px solid #ccc; padding: 6px; text-align: right; font-size: 10px;">₹${item.amount.toFixed(2)}</td>
-                </tr>
-              `).join('')}
-              <tr style="border: 2px solid #000; font-weight: bold;">
-                <td colspan="4" style="border: 1px solid #ccc; padding: 6px; text-align: right; font-size: 11px;">Total</td>
-                <td style="border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 11px;">${inv.total_quantity}</td>
-                <td style="border: 1px solid #ccc; padding: 6px; font-size: 11px;"></td>
-                <td style="border: 1px solid #ccc; padding: 6px; text-align: right; font-size: 11px;">₹${inv.grand_total?.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-          
-          <p style="font-size: 11px; margin: 10px 0;"><strong>Amount in Words:</strong> ${inv.amount_in_words}</p>
-          
-          <div style="margin: 20px 0; font-size: 10px; white-space: pre-line;">${inv.declaration_text || ''}</div>
-          
-          <div style="margin-top: 40px; text-align: right;">
-            <p style="font-size: 11px; margin: 0;"><strong>For ${company.company_name || ''}</strong></p>
-            <div style="height: 60px;"></div>
-            <p style="font-size: 11px; margin: 0;">Authorized Signatory</p>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(tempDiv);
-      
-      const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, logging: false });
-      document.body.removeChild(tempDiv);
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-      
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-      
-      pdf.save(`Invoice-${inv.invoice_number.replace(/\//g, '-')}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF');
+    const itemsData = await base44.entities.InvoiceItem.filter({ invoice_id: invoiceId });
+    const items = itemsData.sort((a, b) => (a.row_index || 0) - (b.row_index || 0));
+
+    const companies = await base44.entities.Company.list();
+    const company = companies.length > 0 ? companies[0] : {};
+
+    // 2. Bootstrap the PDF document (identical to InvoiceView's downloadPDF)
+    const doc = new jsPDF('p', 'mm', 'a4');
+    doc.addFileToVFS('NotoSans.ttf', NotoSansRegular);
+    doc.addFont('NotoSans.ttf', 'NotoSans', 'normal');
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 10;
+
+    // ── HEADER ──────────────────────────────────────────────────────────────
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text(company?.company_name || "ALK RESELL SHOES", pageWidth / 2, 15, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(company?.address || "", pageWidth / 2, 20, { align: 'center' });
+
+    const headerInfo = `GSTIN: ${company?.gstin || ''}   Ph: ${company?.phone || ''}   Email: ${company?.email || ''}`;
+    doc.text(headerInfo, pageWidth / 2, 25, { align: 'center' });
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 30, pageWidth - margin, 30);
+
+    // ── TITLE ────────────────────────────────────────────────────────────────
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text("TAX INVOICE", pageWidth / 2, 40, { align: 'center' });
+
+    // ── BILL TO ──────────────────────────────────────────────────────────────
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, 45, 80, 7, 'F');
+    doc.setFontSize(10);
+    doc.text("Bill To:", margin + 2, 50);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(invoice.client_name || "", margin, 58);
+    doc.setFontSize(8);
+    doc.text(`GSTIN: ${invoice.client_gstin || ''}`, margin, 62);
+    doc.text(invoice.client_address || "", margin, 66);
+    doc.text(`State: ${invoice.client_state_name || ''} (${invoice.client_state_code || ''})`, margin, 70);
+
+    // ── RIGHT-SIDE META ───────────────────────────────────────────────────────
+    const rightX = pageWidth - margin;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("Invoice No:", 135, 50);
+    doc.text("Date:", 135, 55);
+    doc.text("Ref No:", 135, 60);
+
+    doc.setFont('NotoSans', 'normal');
+    doc.text(invoice.invoice_number || "", rightX, 50, { align: 'right' });
+    const dateStr = invoice.invoice_date
+      ? format(new Date(invoice.invoice_date), 'dd/MM/yyyy')
+      : '-';
+    doc.text(dateStr, rightX, 55, { align: 'right' });
+    doc.text(invoice.ref_number || "", rightX, 60, { align: 'right' });
+
+    // ── TABLE ────────────────────────────────────────────────────────────────
+    const tableRows = items.map((item, index) => [
+      index + 1,
+      item.barcode || '',
+      item.description || '',
+      item.hsn_code || '',
+      item.quantity || '',
+      item.unit || '',
+      `\u20B9 ${item.amount.toFixed(2)}`,  // \u20B9 = ₹
+    ]);
+
+    autoTable(doc, {
+      startY: 72,
+      head: [['S.No', 'Barcode', 'Description of Goods', 'HSN Code', 'Qty', 'Unit', 'Amount']],
+      body: tableRows,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2, font: 'NotoSans' },
+      headStyles: {
+        fillColor: [255, 255, 255],
+        textColor: [0, 0, 0],
+        fontStyle: 'normal',
+        lineWidth: 0.1,
+        font: 'NotoSans',
+      },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 18 },
+        2: { cellWidth: 'auto' },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 12, halign: 'center' },
+        5: { cellWidth: 12, halign: 'center' },
+        6: { cellWidth: 30, halign: 'right' },
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    // ── TOTAL ────────────────────────────────────────────────────────────────
+    let finalY = doc.lastAutoTable.finalY + 10;
+
+    doc.setFont('NotoSans', 'normal');
+    doc.text(`Total: \u20B9 ${invoice.grand_total.toFixed(2)}`, rightX, finalY, { align: 'right' });
+    finalY += 10;
+    if (finalY > 230) { doc.addPage(); finalY = 20; }
+
+    // ── AMOUNT IN WORDS ───────────────────────────────────────────────────────
+    doc.setDrawColor(200);
+    doc.setFillColor(250, 251, 252);
+    doc.rect(margin, finalY, pageWidth - margin * 2, 10, 'FD');
+    doc.setFontSize(9);
+    doc.setTextColor(0);
+    doc.text('Amount in Words: ', margin + 2, finalY + 6.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${invoice.amount_in_words}`, margin + 32, finalY + 6.5);
+    finalY += 18;
+
+    // ── DECLARATION ───────────────────────────────────────────────────────────
+    if (invoice.declaration_text) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(80);
+      const declarationLines = doc.splitTextToSize(
+        invoice.declaration_text,
+        pageWidth - margin * 2
+      );
+      doc.text(declarationLines, margin, finalY);
+      finalY += declarationLines.length * 4 + 10;
     }
-  };
 
+    // ── SIGNATORY ─────────────────────────────────────────────────────────────
+    if (finalY > 260) { doc.addPage(); finalY = 20; }
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text(`For ${company?.company_name || 'ALK RESELL SHOES'}`, rightX, finalY, { align: 'right' });
+
+    doc.setLineWidth(0.2);
+    doc.line(rightX - 50, finalY + 15, rightX, finalY + 15);
+    doc.text("Authorized Signatory", rightX - 25, finalY + 20, { align: 'center' });
+
+    // 3. Save
+    doc.save(`Invoice_${invoice.invoice_number.replace(/\//g, '-')}.pdf`);
+
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF');
+  }
+};
   const statusColors = {
     draft: "bg-slate-100 text-slate-700 border border-slate-200",
     sent: "bg-blue-50 text-blue-700 border border-blue-200",

@@ -89,8 +89,11 @@ const downloadPDF = async () => {
     doc.setFont("helvetica", "normal");
     doc.text(invoice.client_name || "", margin, 58);
     doc.setFontSize(8);
-    doc.text(invoice.client_address || "", margin, 62);
-    doc.text(`State: ${invoice.client_state_name || ''} (${invoice.client_state_code || ''})`, margin, 66);
+    doc.text(`GSTIN: ${company?.gstin || ''}`, margin, 62);
+    // doc.text(`Ph: ${company?.phone || ''})`, margin, 66);
+    // doc.text(`Email: ${company?.email || ''})`, margin, 64);
+    doc.text(invoice.client_address || "", margin, 66);
+    doc.text(`State: ${invoice.client_state_name || ''} (${invoice.client_state_code || ''})`, margin, 70);
 
     // Right Side Details
     const rightX = pageWidth - margin;
@@ -294,7 +297,7 @@ const downloadPDF = async () => {
               <div className="text-sm space-y-1">
                 <p className="font-semibold">{invoice.client_name}</p>
                 <p>{invoice.client_address}</p>
-                {invoice.client_gstin && <p>GSTIN: {invoice.client_gstin}</p>}
+                {company?.gstin && <p>GSTIN: {company?.gstin}</p>}
                 {invoice.client_state_name && (
                   <p>State: {invoice.client_state_name} ({invoice.client_state_code})</p>
                 )}

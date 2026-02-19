@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, AlertCircle, CheckCircle, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import * as XLSX from 'xlsx';
 
 export default function PaymentImportPage() {
   const [file, setFile] = useState(null);
@@ -83,7 +84,19 @@ export default function PaymentImportPage() {
       setConfirming(false);
     }
   };
+  const downloadPaymentTemplate = () => {
+    const data = [
+      ["BARCODE", "AMOUNT PAID", "PAYMENT DATE"],
+      [524060368, 17000, "24/3/2026"],
+      [524061489, 8800, "24/3/2026"],
+    ];
 
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Payments");
+
+    XLSX.writeFile(wb, "Payment_import_sample_data.xlsx");
+  };
   const processPayments = async (rows) => {
     console.log("Processing payments for rows:", rows);
     const errors = [];
@@ -321,7 +334,15 @@ export default function PaymentImportPage() {
           <CardHeader>
             <CardTitle>Upload Daily Payment Data</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <div className="flex gap-3 justify-end px-6 py-3">
+              <Button 
+                onClick={downloadPaymentTemplate} 
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Download Sample Data
+              </Button>
+            </div>
+          <CardContent className="space-y-9 mt-4">
             <Alert>
               <FileText className="h-4 w-4" />
               <AlertDescription>

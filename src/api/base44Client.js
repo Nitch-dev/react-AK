@@ -1,6 +1,7 @@
 // src/api/base44Client.js
 
 const PYTHON_URL = "https://flask-backend-ak.vercel.app/api";
+// const PYTHON_URL = "http://localhost:5000/api";
 
 const apiRequest = async (method, entity, id = null, payload = null, params = null) => {
   let url = id ? `${PYTHON_URL}/${entity}/${id}` : `${PYTHON_URL}/${entity}`;
@@ -39,6 +40,7 @@ const createEntityHandler = (name) => ({
   filter: (filters) => apiRequest('GET', name, null, null, filters),
   update: (id, data) => apiRequest('PATCH', name, id, data),
   delete: (id) => apiRequest('DELETE', name, id),
+  deleteBarcodes: (barcodes) => apiRequest('POST', `${name}/delete-by-barcodes`, null, { barcodes }), 
 });
 
 const entitiesList = [

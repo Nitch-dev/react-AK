@@ -6,6 +6,7 @@ import { Upload, AlertCircle, CheckCircle, FileText, History, TrendingUp } from 
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatIndianCurrency } from "@/components/utils/formatCurrency";
+import * as XLSX from 'xlsx';
 
 export default function HistoricalImportPage() {
   const [file, setFile] = useState(null);
@@ -25,6 +26,21 @@ export default function HistoricalImportPage() {
       setImportResult(null);
     }
   };
+  const downloadGSTTemplate = () => {
+    const data = [
+      ["Invoice Number", "Invoice Date", "Customer Name", "Barcode", "Description", "Colour", "Size", "GST Purchase Price", "GST Margin", "Sales Amount"],
+      ["ALK/24-25/08", "03/09/2024", "House of MK", 524060368, "AJ1 HIGH", "UNC TOE 2023", "UK 7.5", 16500, 500, 17000],
+      ["ALK/24-25/08", "03/09/2024", "House of MK", 524061489, "AJ1 LOW", "BRED TOE 2.0", "UK 7", 8300, 500, 8800],
+    
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "GST");
+
+    XLSX.writeFile(wb, "Sample_Historical_Data.xlsx");
+  };
+
 
   const processFile = async () => {
       if (!file) return;
@@ -580,6 +596,14 @@ export default function HistoricalImportPage() {
               <History className="w-6 h-6 text-blue-600" />
               Upload Historical Sales Data
             </CardTitle>
+            <div className="flex gap-3 justify-end">
+              <Button 
+                onClick={downloadGSTTemplate} 
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              >
+                Download Sample Data
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <Alert>

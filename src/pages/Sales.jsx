@@ -74,7 +74,7 @@ export default function SalesPage() {
     }
   };
 
-  const handleDeleteBatch = async (batch) => {
+const handleDeleteBatch = async (batch) => {
     if (!batch || !batch.batchId) {
       console.error('Invalid batch data');
       return;
@@ -88,17 +88,30 @@ export default function SalesPage() {
       const allSalesInBatch = await base44.entities.Sales.filter({ import_batch_id: batchId });
       const uniqueBarcodes = [...new Set(allSalesInBatch.map(s => s.barcode).filter(Boolean))];
       
-      for (const barcode of uniqueBarcodes) {
-        await base44.entities.PaymentTracker.filter({ barcode }).then(records => {
-          return Promise.all(records.map(r => base44.entities.PaymentTracker.delete(r.id).catch(() => {})));
-        }).catch(() => {});
-        
-        await base44.entities.GST.filter({ barcode }).then(records => {
-          return Promise.all(records.map(r => base44.entities.GST.delete(r.id).catch(() => {})));
-        }).catch(() => {});
-      }
+
+      await base44.entities.Sales.deleteBarcodes(uniqueBarcodes);
+
+      console.log(`Started deleting sales for batch ${batchId} with barcodes:`, uniqueBarcodes);
+      // // 🔥 BEFORE: for...of loop = sequential (barcode 1, then barcode 2, then barcode 3...)
+      // // 🔥 AFTER: Promise.all = all barcodes fetched AT THE SAME TIME
+      // const [paymentResults, gstResults] = await Promise.all([
+      //   Promise.all(uniqueBarcodes.map(barcode => 
+      //     base44.entities.PaymentTracker.filter({ barcode }).catch(() => [])
+      //   )),
+      //   Promise.all(uniqueBarcodes.map(barcode => 
+      //     base44.entities.GST.filter({ barcode }).catch(() => [])
+      //   ))
+      // ]);
       
-      await Promise.all(allSalesInBatch.map(sale => base44.entities.Sales.delete(sale.id).catch(() => {})));
+      // const allPaymentRecords = paymentResults.flat();
+      // const allGstRecords = gstResults.flat();
+      
+      // // Delete everything in parallel — sales + payment + gst all at once
+      // await Promise.all([
+      //   ...allPaymentRecords.map(r => base44.entities.PaymentTracker.delete(r.id).catch(() => {})),
+      //   ...allGstRecords.map(r => base44.entities.GST.delete(r.id).catch(() => {})),
+      //   ...allSalesInBatch.map(sale => base44.entities.Sales.delete(sale.id).catch(() => {})),
+      // ]);
       
       await loadSales();
     } catch (error) {
@@ -120,24 +133,36 @@ export default function SalesPage() {
     try {
       const barcode = sale.barcode;
       
-      const paymentRecords = await base44.entities.PaymentTracker.filter({ barcode });
-      await Promise.all(paymentRecords.map(r => base44.entities.PaymentTracker.delete(r.id).catch(() => {})));
+      // 🔥 BEFORE: 3 sequential awaits to fetch data
+      // 🔥 AFTER: all 3 fetches fire simultaneously
+      const [paymentRecords, gstRecords, invoiceItems] = await Promise.all([
+        base44.entities.PaymentTracker.filter({ barcode }),
+        base44.entities.GST.filter({ barcode }),
+        base44.entities.InvoiceItem.filter({ barcode }),
+      ]);
       
-      const gstRecords = await base44.entities.GST.filter({ barcode });
-      await Promise.all(gstRecords.map(r => base44.entities.GST.delete(r.id).catch(() => {})));
-      
-      const invoiceItems = await base44.entities.InvoiceItem.filter({ barcode });
       const affectedInvoiceIds = [...new Set(invoiceItems.map(item => item.invoice_id))];
-      await Promise.all(invoiceItems.map(item => base44.entities.InvoiceItem.delete(item.id).catch(() => {})));
       
-      for (const invoiceId of affectedInvoiceIds) {
-        const remainingItems = await base44.entities.InvoiceItem.filter({ invoice_id: invoiceId });
-        if (remainingItems.length === 0) {
-          await base44.entities.Invoice.delete(invoiceId).catch(() => {});
-        }
-      }
+      // Delete payment, gst, invoice items all at once
+      await Promise.all([
+        ...paymentRecords.map(r => base44.entities.PaymentTracker.delete(r.id).catch(() => {})),
+        ...gstRecords.map(r => base44.entities.GST.delete(r.id).catch(() => {})),
+        ...invoiceItems.map(item => base44.entities.InvoiceItem.delete(item.id).catch(() => {})),
+        base44.entities.Sales.delete(sale.id),
+      ]);
       
-      await base44.entities.Sales.delete(sale.id);
+      // Check which invoices are now empty and delete them
+      const remainingItemChecks = await Promise.all(
+        affectedInvoiceIds.map(invoiceId => 
+          base44.entities.InvoiceItem.filter({ invoice_id: invoiceId })
+        )
+      );
+      
+      await Promise.all(
+        affectedInvoiceIds
+          .filter((_, i) => remainingItemChecks[i].length === 0)
+          .map(invoiceId => base44.entities.Invoice.delete(invoiceId).catch(() => {}))
+      );
       
       await loadSales();
     } catch (error) {

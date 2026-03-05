@@ -1,0 +1,48 @@
+{
+  "name": "PaymentTracker",
+  "type": "object",
+  "properties": {
+    "barcode": {
+      "type": "string",
+      "description": "Unique barcode from sales",
+      "unique": true
+    },
+    "sale_amount": {
+      "type": "number",
+      "description": "Original sale amount (immutable)"
+    },
+    "received_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount received"
+    },
+    "balance": {
+      "type": "number",
+      "description": "Remaining balance to be paid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "unpaid",
+        "partial",
+        "paid"
+      ],
+      "default": "unpaid",
+      "description": "Payment status"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Latest payment date"
+    },
+    "sale_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Original sale date"
+    }
+  },
+  "required": [
+    "barcode",
+    "sale_amount"
+  ]
+}

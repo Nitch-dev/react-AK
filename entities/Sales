@@ -1,0 +1,39 @@
+{
+  "name": "Sales",
+  "type": "object",
+  "properties": {
+    "import_batch_id": {
+      "type": "string",
+      "description": "Unique identifier for the import batch"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "Unique barcode identifier"
+    },
+    "description": {
+      "type": "string",
+      "description": "Product description"
+    },
+    "colour": {
+      "type": "string",
+      "description": "Product colour"
+    },
+    "size": {
+      "type": "string",
+      "description": "Product size"
+    },
+    "price": {
+      "type": "number",
+      "description": "Sale price"
+    },
+    "sale_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of sale"
+    }
+  },
+  "required": [
+    "barcode",
+    "import_batch_id"
+  ]
+}

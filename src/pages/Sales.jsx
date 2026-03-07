@@ -74,7 +74,7 @@ export default function SalesPage() {
     }
   };
 
-const handleDeleteBatch = async (batch) => {
+  const handleDeleteBatch = async (batch) => {
     if (!batch || !batch.batchId) {
       console.error('Invalid batch data');
       return;
@@ -89,29 +89,24 @@ const handleDeleteBatch = async (batch) => {
       const uniqueBarcodes = [...new Set(allSalesInBatch.map(s => s.barcode).filter(Boolean))];
       
       console.log(`Fetched ${allSalesInBatch.length} sales for batch ${batchId}. Unique barcodes:`, uniqueBarcodes);
-      // await base44.entities.Sales.deleteBarcodes(uniqueBarcodes);
 
-      console.log(`Started deleting sales for batch ${batchId} with barcodes:`, allSalesInBatch);
-      // // 🔥 BEFORE: for...of loop = sequential (barcode 1, then barcode 2, then barcode 3...)
-      // // 🔥 AFTER: Promise.all = all barcodes fetched AT THE SAME TIME
-      // const [paymentResults, gstResults] = await Promise.all([
-      //   Promise.all(uniqueBarcodes.map(barcode => 
-      //     base44.entities.PaymentTracker.filter({ barcode }).catch(() => [])
-      //   )),
-      //   Promise.all(uniqueBarcodes.map(barcode => 
-      //     base44.entities.GST.filter({ barcode }).catch(() => [])
-      //   ))
-      // ]);
-      
-      // const allPaymentRecords = paymentResults.flat();
-      // const allGstRecords = gstResults.flat();
-      
-      // // Delete everything in parallel — sales + payment + gst all at once
-      // await Promise.all([
-      //   ...allPaymentRecords.map(r => base44.entities.PaymentTracker.delete(r.id).catch(() => {})),
-      //   ...allGstRecords.map(r => base44.entities.GST.delete(r.id).catch(() => {})),
-      //   ...allSalesInBatch.map(sale => base44.entities.Sales.delete(sale.id).catch(() => {})),
-      // ]);
+      const [paymentResults, gstResults] = await Promise.all([
+        Promise.all(uniqueBarcodes.map((barcode) =>
+          base44.entities.PaymentTracker.filter({ barcode }).catch(() => [])
+        )),
+        Promise.all(uniqueBarcodes.map((barcode) =>
+          base44.entities.GST.filter({ barcode }).catch(() => [])
+        )),
+      ]);
+
+      const allPaymentRecords = paymentResults.flat();
+      const allGstRecords = gstResults.flat();
+
+      await Promise.all([
+        ...allPaymentRecords.map((record) => base44.entities.PaymentTracker.delete(record.id).catch(() => {})),
+        ...allGstRecords.map((record) => base44.entities.GST.delete(record.id).catch(() => {})),
+        ...allSalesInBatch.map((saleRecord) => base44.entities.Sales.delete(saleRecord.id).catch(() => {})),
+      ]);
       
       await loadSales();
     } catch (error) {
@@ -208,11 +203,10 @@ const handleDeleteBatch = async (batch) => {
               
               return (
                 <Card key={batch.batchId} className="overflow-hidden shadow-lg border-slate-200/60 bg-white/80 backdrop-blur hover:shadow-xl transition-all">
-                  <button
+                  <CardHeader
+                    className="cursor-pointer hover:bg-slate-50/50 transition-all"
                     onClick={() => toggleBatch(batch.batchId)}
-                    className="w-full text-left hover:bg-slate-50/50 transition-all"
                   >
-                    <CardHeader className="cursor-pointer">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
@@ -249,7 +243,6 @@ const handleDeleteBatch = async (batch) => {
                         </div>
                       </div>
                     </CardHeader>
-                  </button>
 
                   {isExpanded && (
                     <CardContent className="pt-0">

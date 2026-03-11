@@ -41,7 +41,7 @@ export default function BulkInvoiceUpload({ onSuccess, onCancel }) {
         formData.append('file', file);
         
         // 2. Call your Flask endpoint on Vercel
-        const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+        const response = await fetch("https://flask-backend-ak-dusky.vercel.app/api/integrations/upload", {
           method: 'POST',
           body: formData,
         });

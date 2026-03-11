@@ -43,7 +43,7 @@ export default function PaymentImportPage() {
 
         // 2. Send directly to your unified Vercel Flask endpoint
         // Ensure VITE_API_URL is your Vercel backend URL
-        const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+        const response = await fetch("https://flask-backend-ak-dusky.vercel.app/api/integrations/upload", {
           method: 'POST',
           body: formData,
         });

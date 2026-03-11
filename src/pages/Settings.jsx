@@ -158,7 +158,7 @@ export default function SettingsPage() {
     setDeleteLoading(true);
     try {
       // Direct call to your new Flask endpoint
-      const response = await fetch('https://flask-backend-ak.vercel.app/api/del', {
+      const response = await fetch('https://flask-backend-ak-dusky.vercel.app/api/del', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

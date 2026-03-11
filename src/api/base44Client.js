@@ -1,6 +1,6 @@
 // src/api/base44Client.js
 
-const PYTHON_URL = "https://flask-backend-ak.vercel.app/api";
+const PYTHON_URL = "https://flask-backend-ak-dusky.vercel.app/api";
 // const PYTHON_URL = "http://localhost:5000/api";
 
 const apiRequest = async (method, entity, id = null, payload = null, params = null) => {

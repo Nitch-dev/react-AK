@@ -73,7 +73,7 @@ export default function SalesImportPage() {
 
       // 2. Call your new unified Flask endpoint
       // Replace YOUR_FLASK_URL with your Vercel backend URL or use your SDK's fetch
-      const response = await fetch("https://flask-backend-ak.vercel.app/api/integrations/upload", {
+      const response = await fetch("https://flask-backend-ak-dusky.vercel.app/api/integrations/upload", {
         method: 'POST',
         body: formData,
       });
